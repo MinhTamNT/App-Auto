@@ -1,0 +1,76 @@
+import os
+import requests
+import pandas as pd
+from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+
+token = os.getenv("TOKEN")
+api_url = os.getenv("API")
+api_get_price = os.getenv("API_GET_PRICE_VN30")
+
+
+def send_notify_signal(symbol, signal_date, signal_type, price):
+    payload = {
+        'symbol': symbol,
+        'type': signal_type,
+        'date': signal_date,
+        'price': price,
+    }
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    try:
+        response = requests.post(api_url, json=payload, headers=headers)
+        if response.status_code == 200:
+            print(f"Tín hiệu {signal_type} cho mã {symbol} đã được gửi thành công.")
+        else:
+            print(f"API thất bại với mã trạng thái: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Lỗi khi gọi API: {e}")
+
+
+def fetch_stock_data(symbol, start_date, end_date, resolution="1"):
+    start = int(datetime.strptime(start_date, "%Y-%m-%d").timestamp())
+    end = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp())
+
+    url = f"{api_get_price}?resolution={resolution}&ticker={symbol}&type=derivative&start={start}&to={end}&countBack=1"
+
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        if data and 'data' in data:
+            prices = [{'time': row['tradingDate'], 'price': row['close']} for row in data['data']]
+            return pd.DataFrame(prices)
+        else:
+            print("Không có dữ liệu")
+            return pd.DataFrame()
+    else:
+        print(f"Lỗi: {response.status_code}, {response.text}")
+        return pd.DataFrame()
+
+
+def calculate_ema(df, window=5):
+    df['price'] = df['price'].astype(float)
+    df['EMA_5'] = df['price'].ewm(span=window, adjust=False).mean()
+    return df
+
+
+def generate_signal(symbol, ema_df):
+    if len(ema_df) < 2 or ema_df['EMA_5'].isnull().any():
+        return None
+
+    price = ema_df.iloc[-1]['price']
+    current_ema = ema_df.iloc[-1]['EMA_5']
+
+    signal_date = datetime.now().isoformat()
+
+    if price > current_ema:
+        send_notify_signal(symbol, signal_date, "1", price)
+        return "Tín hiệu mua"
+    elif price < current_ema:
+        send_notify_signal(symbol, signal_date, "2", price)
+        return "Tín hiệu bán"
+    else:
+        return "Không có tín hiệu"
