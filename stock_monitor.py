@@ -1,8 +1,9 @@
-
 import requests
 import pandas as pd
 from datetime import datetime
 from config import *
+import pandas_ta as ta
+
 
 def send_notify_signal(symbol, signal_date, signal_type, price):
     payload = {
@@ -44,7 +45,8 @@ def fetch_stock_data(symbol, start_date, end_date, resolution="1"):
 
 def calculate_ema(df, window=5):
     df['price'] = df['price'].astype(float)
-    df['EMA_5'] = df['price'].ewm(span=window, adjust=False).mean()
+    df['EMA_5'] = ta.ema(df['price'], length=window)
+
     return df
 
 
@@ -57,6 +59,9 @@ def generate_signal(symbol, ema_df):
 
     signal_date = datetime.now().isoformat()
 
+    print(price > current_ema)
+
+    print(price < current_ema)
     if price > current_ema:
         send_notify_signal(symbol, signal_date, "1", price)
         return "Tín hiệu mua"
