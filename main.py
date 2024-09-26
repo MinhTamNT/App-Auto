@@ -11,7 +11,7 @@ def run_stock_monitoring(symbols, start_date, end_date , resolution):
     while True:
         current_time = datetime.now().time()
 
-        if current_time >= datetime.strptime('09:15', '%H:%M').time() and current_time <= datetime.strptime('17:00', '%H:%M').time():
+        if current_time >= datetime.strptime('09:15', '%H:%M').time() and current_time <= datetime.strptime('15:00', '%H:%M').time():
             for symbol in symbols:
                 df = fetch_stock_data(symbol, start_date, end_date , resolution)
 
@@ -31,10 +31,10 @@ def run_stock_monitoring(symbols, start_date, end_date , resolution):
                 else:
                     print(f"Không lấy được dữ liệu cho mã {symbol}")
 
-            print("\nChờ 1 phút...\n")
+            print(f"\nChờ {resolution}...\n")
             time.sleep(60)
         else:
-            print(f"Hiện tại ngoài giờ giao dịch (9:15 AM - 5:00 PM). Chờ đến giờ...\n")
+            print(f"Hiện tại ngoài giờ giao dịch (9:15 AM - 3:00 PM). Chờ đến giờ...\n")
             time.sleep(60)
 
 
@@ -42,6 +42,6 @@ if __name__ == "__main__":
     # Truyền các tham số bắt đầu và kết thúc, mã cổ phiếu
     start_date = "2024-09-26"
     end_date = "2024-09-26"
-    symbols = ["VN30F2410"]
+    symbols = ["VN30F2410" , "FPT"]
     resolution = "1"
     run_stock_monitoring(symbols, start_date, end_date , resolution)

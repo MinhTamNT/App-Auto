@@ -27,20 +27,35 @@ def fetch_stock_data(symbol, start_date, end_date, resolution="1"):
     start = int(datetime.strptime(start_date, "%Y-%m-%d").timestamp())
     end = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp())
 
-    url = f"{API_GET_PRICE_VN30}?resolution={resolution}&ticker={symbol}&type=derivative&start={start}&to={end}&countBack=1"
+    # Check if the symbol starts with "VN30"
+    if symbol.startswith("VN30"):
+        url = f"{API_GET_PRICE_VN30}?resolution={resolution}&ticker={symbol}&type=derivative&start={start}&to={end}&countBack=1"
+        response = requests.get(url)
 
-    response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            if data and 'data' in data:
+                prices = [{'time': row['tradingDate'], 'price': row['close']} for row in data['data']]
+                return pd.DataFrame(prices)
+            else:
+                print("Không có dữ liệu từ VN30 API, thử API thay thế.")
+        else:
+            print(f"Lỗi từ VN30 API: {response.status_code}, {response.text}")
+
+    url_alternative = f"{API_REAL_TIME}{symbol}/his/paging"
+    response = requests.get(url_alternative)
+
     if response.status_code == 200:
         data = response.json()
         if data and 'data' in data:
-            prices = [{'time': row['tradingDate'], 'price': row['close']} for row in data['data']]
+            prices = [{'time': row['t'], 'price': row['p']} for row in data['data']]
             return pd.DataFrame(prices)
         else:
-            print("Không có dữ liệu")
-            return pd.DataFrame()
+            print("Không có dữ liệu từ API thay thế.")
     else:
-        print(f"Lỗi: {response.status_code}, {response.text}")
-        return pd.DataFrame()
+        print(f"Lỗi từ API thay thế: {response.status_code}, {response.text}")
+
+    return pd.DataFrame()
 
 
 def calculate_ema(df, window=5):
