@@ -39,9 +39,8 @@ def run_stock_monitoring(symbols, start_date, end_date , resolution):
 
 
 if __name__ == "__main__":
-    # Truyền các tham số bắt đầu và kết thúc, mã cổ phiếu
-    start_date = "2024-09-25"
-    end_date = "2024-09-25"
+    start_date = "2024-09-26"
+    end_date = "2024-09-26"
     symbols = ["VN30F2410"]
     resolution = "1"
     run_stock_monitoring(symbols, start_date, end_date , resolution)

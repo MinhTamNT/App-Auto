@@ -1,15 +1,8 @@
-import os
+
 import requests
 import pandas as pd
 from datetime import datetime
-from dotenv import load_dotenv
-
-load_dotenv()
-
-token = os.getenv("TOKEN")
-api_url = os.getenv("API")
-api_get_price = os.getenv("API_GET_PRICE_VN30")
-
+from config import *
 
 def send_notify_signal(symbol, signal_date, signal_type, price):
     payload = {
@@ -18,11 +11,9 @@ def send_notify_signal(symbol, signal_date, signal_type, price):
         'date': signal_date,
         'price': price,
     }
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
+    url = f"{API}?username?=minhtam1232"
     try:
-        response = requests.post(api_url, json=payload, headers=headers)
+        response = requests.post(url, json=payload)
         if response.status_code == 200:
             print(f"Tín hiệu {signal_type} cho mã {symbol} đã được gửi thành công.")
         else:
@@ -35,7 +26,7 @@ def fetch_stock_data(symbol, start_date, end_date, resolution="1"):
     start = int(datetime.strptime(start_date, "%Y-%m-%d").timestamp())
     end = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp())
 
-    url = f"{api_get_price}?resolution={resolution}&ticker={symbol}&type=derivative&start={start}&to={end}&countBack=1"
+    url = f"{API_GET_PRICE_VN30}?resolution={resolution}&ticker={symbol}&type=derivative&start={start}&to={end}&countBack=1"
 
     response = requests.get(url)
     if response.status_code == 200:
