@@ -5,14 +5,15 @@ from config import *
 import pandas_ta as ta
 
 
-def send_notify_signal(symbol, signal_date, signal_type, price):
+def send_notify_signal(symbol, signal_date, signal_type, price , priceRecommend):
     payload = {
         'symbol': symbol,
         'type': signal_type,
         'date': signal_date,
         'price': price,
+        'priceRecommend' : priceRecommend
     }
-    url = f"{API}?username?=minhtam1232"
+    url = f"{API}?username?={USERNAME}"
     try:
         response = requests.post(url, json=payload)
         if response.status_code == 200:
@@ -27,7 +28,6 @@ def fetch_stock_data(symbol, start_date, end_date, resolution="1"):
     start = int(datetime.strptime(start_date, "%Y-%m-%d").timestamp())
     end = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp())
 
-    # Check if the symbol starts with "VN30"
     if symbol.startswith("VN30"):
         url = f"{API_GET_PRICE_VN30}?resolution={resolution}&ticker={symbol}&type=derivative&start={start}&to={end}&countBack=1"
         response = requests.get(url)
@@ -42,7 +42,7 @@ def fetch_stock_data(symbol, start_date, end_date, resolution="1"):
         else:
             print(f"Lỗi từ VN30 API: {response.status_code}, {response.text}")
 
-    url_alternative = f"{API_REAL_TIME}{symbol}/his/paging"
+    url_alternative = f"{API_REAL_TIME}/v1/intraday/{symbol}/his/paging"
     response = requests.get(url_alternative)
 
     if response.status_code == 200:

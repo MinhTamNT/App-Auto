@@ -1,19 +1,23 @@
 import pandas as pd
-
 from stock_monitor import fetch_stock_data, calculate_ema, generate_signal
 import time
 from datetime import datetime
 
 
-def run_stock_monitoring(symbols, start_date, end_date , resolution):
+def run_stock_monitoring(symbols, start_date, end_date, resolution):
     dataframes = {symbol: pd.DataFrame(columns=['time', 'price']) for symbol in symbols}
 
     while True:
-        current_time = datetime.now().time()
+        current_time = datetime.now()
 
-        if current_time >= datetime.strptime('09:15', '%H:%M').time() and current_time <= datetime.strptime('15:00', '%H:%M').time():
+
+        start_trading_time = current_time.replace(hour=9, minute=15, second=0, microsecond=0).time()
+        end_trading_time = current_time.replace(hour=15, minute=0, second=0, microsecond=0).time()
+
+
+        if start_trading_time <= current_time.time() <= end_trading_time:
             for symbol in symbols:
-                df = fetch_stock_data(symbol, start_date, end_date , resolution)
+                df = fetch_stock_data(symbol, start_date, end_date, resolution)
 
                 if not df.empty:
                     if not dataframes[symbol].empty:
@@ -34,14 +38,13 @@ def run_stock_monitoring(symbols, start_date, end_date , resolution):
             print(f"\nChờ {resolution}...\n")
             time.sleep(60)
         else:
-            print(f"Hiện tại ngoài giờ giao dịch (9:15 AM - 3:00 PM). Chờ đến giờ...\n")
+            print(f"Hiện tại là {current_time.strftime('%H:%M:%S')}, ngoài giờ giao dịch (9:15 AM - 3:00 PM). Chờ đến giờ...\n")
             time.sleep(60)
 
 
 if __name__ == "__main__":
-    # Truyền các tham số bắt đầu và kết thúc, mã cổ phiếu
-    start_date = "2024-09-26"
-    end_date = "2024-09-26"
-    symbols = ["VN30F2410" , "FPT"]
+    start_date = "2024-09-27"
+    end_date = "2024-09-27"
+    symbols = ["VN30F2410", "FPT"]
     resolution = "1"
-    run_stock_monitoring(symbols, start_date, end_date , resolution)
+    run_stock_monitoring(symbols, start_date, end_date, resolution)
