@@ -1,19 +1,22 @@
 import requests
 import pandas as pd
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 from config import *
-import pandas_ta as ta
 
+# Cooldown duration in seconds
+last_signals = {}
 
-def send_notify_signal(symbol, signal_date, signal_type, price , priceRecommend):
+def send_notify_signal(symbol, signal_date, signal_type, current_price, recommended_price):
     payload = {
         'symbol': symbol,
         'type': signal_type,
         'date': signal_date,
-        'price': price,
-        'priceRecommend' : priceRecommend
+        'price': current_price,
+        'current_price': recommended_price
     }
-    url = f"{API}?username?={USERNAME}"
+
+    url = f"{API}?username={USERNAME}"  # Fixed URL format
     try:
         response = requests.post(url, json=payload)
         if response.status_code == 200:
@@ -23,15 +26,14 @@ def send_notify_signal(symbol, signal_date, signal_type, price , priceRecommend)
     except requests.exceptions.RequestException as e:
         print(f"Lỗi khi gọi API: {e}")
 
-
 def fetch_stock_data(symbol, start_date, end_date, resolution="1"):
     start = int(datetime.strptime(start_date, "%Y-%m-%d").timestamp())
     end = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp())
 
     if symbol.startswith("VN30"):
-        url = f"{API_GET_PRICE_VN30}?resolution={resolution}&ticker={symbol}&type=derivative&start={start}&to={end}&countBack=1"
+        url = f"{API_GET_PRICE_VN30}?resolution={resolution}&ticker={symbol}&type=derivative&start={start}&to={end}&countBack=5"
         response = requests.get(url)
-
+        print(f"Response Body: {response.json()}")
         if response.status_code == 200:
             data = response.json()
             if data and 'data' in data:
@@ -57,31 +59,56 @@ def fetch_stock_data(symbol, start_date, end_date, resolution="1"):
 
     return pd.DataFrame()
 
-
 def calculate_ema(df, window=5):
-    df['price'] = df['price'].astype(float)
-    df['EMA_5'] = ta.ema(df['price'], length=window)
+    if len(df) < window:
+        print(f"Not enough data to calculate EMA_{window}. Need at least {window} data points, but only have {len(df)}.")
+        return df
+
+    prices = df['price'].astype(float).values
+    sma = sum(prices[:window]) / window
+    alpha = 2 / (window + 1)
+    ema_values = [sma]
+
+    for price in prices[window:]:
+        ema = (price - ema_values[-1]) * alpha + ema_values[-1]
+        ema_values.append(ema)
+
+    ema_series = [None] * (window - 1) + ema_values
+    df[f'EMA_{window}'] = ema_series
 
     return df
 
-
 def generate_signal(symbol, ema_df):
-    if len(ema_df) < 2 or ema_df['EMA_5'].isnull().any():
-        return None
-
-    price = ema_df.iloc[-1]['price']
-    current_ema = ema_df.iloc[-1]['EMA_5']
-
+    current_price = ema_df.iloc[-1]['price']
+    recommended_price = ema_df.iloc[-1]['EMA_5']
     signal_date = datetime.now().isoformat()
+    now = datetime.now()
 
-    print(price > current_ema)
+    # Initialize last signal if not present
+    if symbol not in last_signals:
+        last_signals[symbol] = {'type': None, 'time': None}
 
-    print(price < current_ema)
-    if price > current_ema:
-        send_notify_signal(symbol, signal_date, "1", price)
-        return "Tín hiệu mua"
-    elif price < current_ema:
-        send_notify_signal(symbol, signal_date, "2", price)
-        return "Tín hiệu bán"
+    # last_signal_type = last_signals[symbol]['type']
+    # last_signal_time = last_signals[symbol]['time']
+
+    if current_price > recommended_price:
+            send_notify_signal(symbol, signal_date, "1", current_price, current_price)
+            return "Tín hiệu mua"
+    elif current_price < recommended_price:
+            send_notify_signal(symbol, signal_date, "2", current_price, current_price)
+            return "Tín hiệu bán"
+
+    print("Không có tín hiệu")
+    return "Không có tín hiệu"
+
+def convert_resolution_to_seconds(resolution):
+    if resolution.isdigit():
+        return int(resolution) * 60  # Convert minutes to seconds
+    elif resolution == 'D':
+        return 86400
+    elif resolution == 'w':
+        return 604800  # 1 week in seconds
+    elif resolution == 'M':
+        return 2592000  # 1 month in seconds
     else:
-        return "Không có tín hiệu"
+        raise ValueError("Invalid resolution format")
