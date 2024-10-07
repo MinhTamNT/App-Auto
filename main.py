@@ -14,7 +14,7 @@ def run_stock_monitoring(symbols, start_date, end_date, resolution):
         current_time = datetime.now()
 
         start_trading_time = current_time.replace(hour=9, minute=15, second=0, microsecond=0).time()
-        end_trading_time = current_time.replace(hour=15, minute=0, second=0, microsecond=0).time()
+        end_trading_time = current_time.replace(hour=15, minute=20, second=0, microsecond=0).time()
 
         if start_trading_time <= current_time.time() <= end_trading_time:
             for symbol in symbols:
@@ -28,7 +28,7 @@ def run_stock_monitoring(symbols, start_date, end_date, resolution):
 
                     if len(dataframes[symbol]) >= 5:
                         ema_df = calculate_ema(dataframes[symbol])
-                        signal = generate_signal(symbol, ema_df)
+                        signal = generate_signal(symbol, ema_df , resolution)
 
                         current_price = ema_df.iloc[-1]['price']
                         ema_5 = ema_df.iloc[-1]['EMA_5']
@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
     end_date = current_date
 
-    symbols = ["VN30F2410", "FPT"]
+    symbols = ["FPT"]
 
     # Can be "1", "5", "15", "60", "D", or "M"
     resolution = "1"
